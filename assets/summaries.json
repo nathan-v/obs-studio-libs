@@ -1,0 +1,3 @@
+{
+  "qt6": "Qt 6 (qtbase, qtsvg, qtwayland on Linux): shared libraries, headers, CMake packages and plugins for building OBS-Studio-Rust."
+}
