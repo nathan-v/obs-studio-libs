@@ -1,2 +1,0 @@
-[console_scripts]
-obs-studio-libs = obs_studio_libs.cli:main
