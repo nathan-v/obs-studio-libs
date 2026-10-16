@@ -5,22 +5,26 @@
 """Pack and catalog obs-studio-libs artifacts (zackees/manifest.json format).
 
     uv run scripts/libs.py pack <dir> --tool qt6 --version 6.11.1 --platform os=linux,arch=x86_64,libc=glibc,os_version=2.28 --out dist
-    uv run scripts/libs.py add  dist/<asset>.json            # into assets/<tool>/manifest.json + manifest.json
-    uv run scripts/libs.py slice --tool qt6 --version 6.11.1 --platform os=linux,arch=x86_64 -o slice.json
+    uv run scripts/libs.py add  dist/<asset>.json --assets <assets checkout>   # <tool>/manifest.json + the root manifest.json
+    uv run scripts/libs.py slice --tool qt6 --version 6.11.1 --platform os=linux,arch=x86_64 --assets <dir> -o slice.json
 
 pack   archives <dir>'s contents as <tool>-<version>-<platform>[-<variant>].tar.zst
        (zstd level 9; Python's own tarfile + compression.zstd, so the same
        script runs on Linux, macOS and Windows runners) and writes the
        manifest.json Asset for it next to it (<asset>.json).
-add    records an Asset in the tool's Catalog (creating the Release, newest
-       first), points the tool's channels at it, and refreshes the Index
-       descriptor (sha256 and size of the Catalog).
+add    records an Asset in the tool's Catalog (<tool>/manifest.json; creating
+       the Release, newest first), points the tool's channels at it, and
+       rewrites the root manifest.json, the Index every consumer starts from,
+       whose descriptors point at each Catalog by relative URL, sha256 and size.
+
+The catalogs live on the orphan `assets` branch (the layout soldr-toolchain
+uses): manifest.json at its root, one <tool>/manifest.json per tool.
 slice  projects one platform's entry into an EmbeddedSlice for a consumer to
        pin (obs-studio commits it as e.g. build-aux/appimage/manylinux/qt6.json).
 
 Everything is served as plain HTTPS: assets from the release download URL
 (github.com/<repo>/releases/download/<tag>/<file>), catalogs from
-raw.githubusercontent.com. Neither is the GitHub API, so consumers need no
+raw.githubusercontent.com (.../assets/manifest.json). Neither is the GitHub API, so consumers need no
 token and are not rate-limited.
 """
 
@@ -36,7 +40,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = "obs-rust/obs-studio-libs"
-RAW = f"https://raw.githubusercontent.com/{REPO}/main"
+RAW = f"https://raw.githubusercontent.com/{REPO}/assets"  # the orphan assets branch, as in soldr-toolchain
 SCHEMA = "https://zackees.github.io/manifest.json/v1/manifest.schema.json"
 ZSTD_LEVEL = 9
 PLATFORM_KEYS = ("os", "arch", "os_version", "libc", "abi")
@@ -116,10 +120,10 @@ def add(args: argparse.Namespace) -> int:
     for rec_path in args.records:
         rec = json.loads(rec_path.read_text())
         tool, version = rec["tool"], rec["version"]
-        cat_path = ROOT / "assets" / tool / "manifest.json"
+        cat_path = args.assets / tool / "manifest.json"
         cat = json.loads(cat_path.read_text()) if cat_path.exists() else {
             "$schema": SCHEMA, "kind": "Catalog", "schema_version": 1, "tool": tool,
-            "online_url": f"{RAW}/assets/{tool}/manifest.json", "channels": {}, "releases": [],
+            "online_url": f"{RAW}/{tool}/manifest.json", "channels": {}, "releases": [],
         }
         rel = next((r for r in cat["releases"] if r["version"] == version), None)
         if rel is None:
@@ -136,26 +140,27 @@ def add(args: argparse.Namespace) -> int:
         cat["channels"]["latest-stable"] = cat["releases"][0]["version"]
         cat["channels"].setdefault("stable", cat["releases"][0]["version"])
         write_json(cat_path, cat)
-        print(f"{cat_path.relative_to(ROOT)}: {tool} {version} {flat(rec['platform'], rec['variant'])}")
-    write_index()
+        print(f"{cat_path.relative_to(args.assets)}: {tool} {version} {flat(rec['platform'], rec['variant'])}")
+    write_index(args.assets)
     return 0
 
 
-def write_index() -> None:
+def write_index(assets: Path) -> None:
+    """The root manifest.json: the Index, with relative descriptors (as soldr-toolchain)."""
     index = {"$schema": SCHEMA, "kind": "Index", "schema_version": 1, "tools": {}}
-    summaries = json.loads((ROOT / "assets/summaries.json").read_text())
-    for cat_path in sorted((ROOT / "assets").glob("*/manifest.json")):
+    summaries = json.loads((ROOT / "summaries.json").read_text())
+    for cat_path in sorted(assets.glob("*/manifest.json")):
         tool = cat_path.parent.name
         index["tools"][tool] = {
-            "descriptor": descriptor(cat_path, f"{RAW}/assets/{tool}/manifest.json"),
+            "descriptor": descriptor(cat_path, f"{tool}/manifest.json"),
             "summary": summaries.get(tool, ""),
             "kind_hint": "library",
         }
-    write_json(ROOT / "manifest.json", index)
+    write_json(assets / "manifest.json", index)
 
 
 def make_slice(args: argparse.Namespace) -> int:
-    cat_path = ROOT / "assets" / args.tool / "manifest.json"
+    cat_path = args.assets / args.tool / "manifest.json"
     cat = json.loads(cat_path.read_text())
     want = parse_tuple(args.platform, PLATFORM_KEYS)
     want_v = parse_tuple(args.variant, VARIANT_KEYS)
@@ -191,11 +196,13 @@ def main(argv: list[str] | None = None) -> int:
     pk.add_argument("--out", type=Path, default=Path("dist"))
     ad = sub.add_parser("add")
     ad.add_argument("records", type=Path, nargs="+")
+    ad.add_argument("--assets", type=Path, required=True, help="a checkout of the assets branch")
     sl = sub.add_parser("slice")
     sl.add_argument("--tool", required=True)
     sl.add_argument("--version", required=True, help="a version or a channel")
     sl.add_argument("--platform", required=True)
     sl.add_argument("--variant", default="")
+    sl.add_argument("--assets", type=Path, required=True, help="a checkout of the assets branch")
     sl.add_argument("-o", "--output", type=Path, required=True)
     args = p.parse_args(argv)
     return {"pack": pack, "add": add, "slice": make_slice}[args.cmd](args)

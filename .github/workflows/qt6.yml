@@ -3,8 +3,8 @@ run-name: Qt ${{ inputs.qt_version }} for Windows and macOS
 # Builds Qt with obs-deps' own recipe and build action (deps.qt/, the
 # build-qt action) on the Windows and macOS runners, repacks each platform's
 # result as <tool>-<version>-<platform>.tar.zst (zstd 9, scripts/libs.py),
-# attaches it to the release qt6-<version>, and records it in
-# assets/qt6/manifest.json. Linux (glibc 2.28) is built by obs-studio's
+# attaches it to the release qt6-<version>, and records it in qt6/manifest.json
+# and the root manifest.json on the assets branch. Linux (glibc 2.28) is built by obs-studio's
 # build-aux/appimage/manylinux/ image and published with the same script.
 on:
   workflow_dispatch:
@@ -118,6 +118,12 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      # The catalogs live on the orphan assets branch: manifest.json (the Index)
+      # at its root and <tool>/manifest.json per tool, as in soldr-toolchain.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: assets
+          path: assets-branch
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: dist
@@ -130,13 +136,15 @@ jobs:
         run: |
           tag="qt6-${QT_VERSION}"
           gh release view "$tag" >/dev/null 2>&1 ||
-            gh release create "$tag" --title "Qt ${QT_VERSION}" --notes "Qt ${QT_VERSION} per platform; see assets/qt6/manifest.json."
+            gh release create "$tag" --target main --title "Qt ${QT_VERSION}" \
+              --notes "Qt ${QT_VERSION} per platform; catalogued at https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/assets/manifest.json"
           gh release upload "$tag" dist/*.tar.zst --clobber
-          uv run --python 3.14 scripts/libs.py add dist/*.tar.zst.json
+          uv run --python 3.14 scripts/libs.py add dist/*.tar.zst.json --assets assets-branch
+          cd assets-branch
           uvx --from git+https://github.com/zackees/manifest.json@e255ede6edf4a646a6d1031e91fd57136105a899 \
-            manifest-validate manifest.json assets/*/manifest.json
+            manifest-validate manifest.json */manifest.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add manifest.json assets
+          git add manifest.json */manifest.json
           git commit -m "qt6 ${QT_VERSION}: Windows and macOS assets"
-          git push
+          git push origin HEAD:assets

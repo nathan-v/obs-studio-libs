@@ -6,18 +6,26 @@ instead of being compiled again (obs-rust/obs-studio#525, #926).
 
 ## Layout
 
-| Path | What |
+Code is on `main`. The catalogs are on the orphan **`assets`** branch, the
+layout [soldr-toolchain](https://github.com/zackees/soldr-toolchain) uses:
+
+| Path (assets branch) | What |
 |---|---|
-| `manifest.json` | The [manifest.json](https://github.com/zackees/manifest.json) **Index**: one entry per tool, pointing at its Catalog with sha256 and size. |
-| `assets/<tool>/manifest.json` | The tool's **Catalog**: channels (`latest-stable`, `stable`), and per version a Release with one Asset per platform. |
+| `manifest.json` | **The root.** The [manifest.json](https://github.com/zackees/manifest.json) **Index** every consumer starts from: one entry per tool, pointing at its Catalog by relative URL, sha256 and size. |
+| `<tool>/manifest.json` | The tool's **Catalog**: channels (`latest-stable`, `stable`), and per version a Release with one Asset per platform. |
+
+| Elsewhere | What |
+|---|---|
 | Release `<tool>-<version>` | The assets: `<tool>-<version>-<platform>[-<variant>].tar.zst`, zstd level 9. |
-| `scripts/libs.py` | `pack` (directory to `.tar.zst` plus its Asset record), `add` (record into the Catalog and refresh the Index), `slice` (an EmbeddedSlice for a consumer to pin). |
+| `scripts/libs.py` (main) | `pack` (directory to `.tar.zst` plus its Asset record), `add` (record into the Catalog and rewrite the root Index), `slice` (an EmbeddedSlice for a consumer to pin). |
+
+Root: `https://raw.githubusercontent.com/obs-rust/obs-studio-libs/assets/manifest.json`
 
 ## Plain HTTPS, no GitHub API
 
 Consumers fetch everything as static files:
 
-- catalogs: `https://raw.githubusercontent.com/obs-rust/obs-studio-libs/main/...`
+- the root and the catalogs: `https://raw.githubusercontent.com/obs-rust/obs-studio-libs/assets/manifest.json`, `.../assets/<tool>/manifest.json`
 - assets: `https://github.com/obs-rust/obs-studio-libs/releases/download/<tool>-<version>/<file>`
 
 Neither is `api.github.com`, so a build needs no token and is not
