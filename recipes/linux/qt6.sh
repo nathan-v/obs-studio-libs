@@ -5,6 +5,8 @@
 # These are the Qt libraries the Ubuntu 26.04 AppImage bundled, at the version
 # obs-deps (deps.qt/qt6.zsh) ships for Windows and macOS.
 set -euo pipefail
+[ "$(getconf GNU_LIBC_VERSION)" = "glibc 2.28" ] ||
+    { echo "error: $(getconf GNU_LIBC_VERSION), expected exactly glibc 2.28 (recipes/linux/Dockerfile)" >&2; exit 1; }
 
 # Its own prefix: Qt is published on its own (obs-rust/obs-studio-libs, tool
 # "qt6"), so the tarball is exactly this directory.

@@ -1,7 +1,11 @@
 # Local producers under bosn (zackees/bosn).
-#   bosn run --task linux    build every Linux tool (recipes/linux/Dockerfile) and
-#                            pack each into dist/<tool>-<version>-linux-x86_64-glibc2.28-release.tar.zst
-# then: obs-studio-libs add dist/*.tar.zst.json --assets <assets-branch checkout>,
+#   bosn run --task linux    build every Linux tool and pack each into
+#                            dist/<tool>-<version>-linux-x86_64-glibc2.28-release.tar.zst
+# The image is only the toolchain (recipes/linux/Dockerfile). The tools are
+# built into /opt/obs-deps/<tool>, which is the host's out/<tool>: the output
+# directory is a bind mount, so the results land on the host directly (and keep
+# the /opt/obs-deps/<tool> prefix the consumer installs them under).
+# Then: obs-studio-libs add dist/*.tar.zst.json --assets <assets-branch checkout>,
 # and upload the archives to the <tool>-<version> releases.
 
 [stack.linux]
@@ -16,7 +20,8 @@ UV_PROJECT_ENVIRONMENT = "/tmp/uv-venv"
 
 [stack.linux.mounts]
 src = { source = ".", destination = "/src" }
+out = { source = "out", destination = "/opt/obs-deps" }
 
 [task.linux]
 stack = "linux"
-cmd = "recipes/linux/pack.sh"
+cmd = "recipes/linux/build.sh"

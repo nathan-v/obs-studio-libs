@@ -5,6 +5,15 @@
 # this file, and runs its steps.
 set -euo pipefail
 
+# The exact glibc these artifacts are built against: the digest-pinned
+# manylinux_2_28 image's. Refuse to build anywhere else.
+GLIBC_EXPECTED=2.28
+glibc_now="$(getconf GNU_LIBC_VERSION | sed 's/^glibc //')"
+if [ "$glibc_now" != "$GLIBC_EXPECTED" ]; then
+    echo "error: building against glibc $glibc_now, expected exactly $GLIBC_EXPECTED (recipes/linux/Dockerfile)" >&2
+    exit 1
+fi
+
 # CMake 4 refuses projects (svt-av1's bundled cpuinfo, ...) that still declare
 # cmake_minimum_required < 3.5; let them configure with 3.5 policies.
 export CMAKE_POLICY_VERSION_MINIMUM=3.5
