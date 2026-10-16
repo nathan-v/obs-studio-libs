@@ -5,7 +5,7 @@
     obs-studio-libs ingest <forge-artifact.tar.gz> --tool qt6 --version 6.11.1 --platform ... --out dist
     obs-studio-libs add    dist/*.tar.zst.json --assets <assets-branch checkout> [--replace]
     obs-studio-libs slice  --assets <dir> --tool qt6 --version 6.11.1 --platform os=linux,arch=x86_64 -o slice.json
-    obs-studio-libs fetch  --tool qt6 --version 6.11.1 --platform ... --sha256 <hex> --dest /opt/obs-deps/qt6
+    obs-studio-libs fetch  --lock deps.lock.json [--only qt6]
 
 The catalogs live on the orphan `assets` branch: manifest.json at its root
 (the Index) and <tool>/manifest.json per tool, as in zackees/soldr-toolchain.
@@ -19,8 +19,8 @@ import sys
 from pathlib import Path
 
 from . import catalog as cat
-from .fetch import ROOT_URL, Pin, install
-from .model import ManifestError, Platform, Variant, dumps, parse_record, parse_summaries
+from .fetch import Pin, install
+from .model import ManifestError, Platform, Variant, dumps, parse_lock, parse_record, parse_summaries
 from .pack import ingest, pack
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,11 +52,9 @@ def main(argv: list[str] | None = None) -> int:
     _common(s)
     s.add_argument("--assets", type=Path, required=True)
     s.add_argument("-o", "--output", type=Path, required=True)
-    s = sub.add_parser("fetch")
-    _common(s)
-    s.add_argument("--sha256", required=True)
-    s.add_argument("--dest", type=Path, required=True)
-    s.add_argument("--root", default=ROOT_URL)
+    s = sub.add_parser("fetch", help="install every pin of a lock file (or --only some tools)")
+    s.add_argument("--lock", type=Path, required=True)
+    s.add_argument("--only", action="append", default=[])
     args = p.parse_args(argv)
 
     try:
@@ -88,11 +86,13 @@ def main(argv: list[str] | None = None) -> int:
             args.output.write_text(dumps(sl))
             print(f"{args.output}: {sl.asset.filename}")
         elif args.cmd == "fetch":
-            pin = Pin(
-                args.tool, args.version, Platform.from_spec(args.platform), Variant.from_spec(args.variant), args.sha256
-            )
-            asset = install(pin, args.dest, args.root)
-            print(f"{asset.filename} -> {args.dest}")
+            lock = parse_lock(args.lock.read_bytes(), str(args.lock))
+            for locked in lock.tools:
+                if args.only and locked.tool not in args.only:
+                    continue
+                pin = Pin(locked.tool, locked.version, locked.platform, locked.variant, locked.sha256)
+                asset = install(pin, Path(locked.install), lock.root)
+                print(f"{asset.filename} -> {locked.install}")
     except ManifestError as e:
         print(f"obs-studio-libs: {e}", file=sys.stderr)
         return 1

@@ -452,6 +452,45 @@ class PackRecord:
         return {"tool": self.tool, "version": self.version, "entry": self.entry.to_json()}
 
 
+@dataclass(frozen=True)
+class LockedTool:
+    """One dependency a consumer pins: which build, for which platform, with which bytes, installed where."""
+
+    tool: str
+    version: str
+    platform: Platform
+    variant: Variant
+    sha256: str
+    install: str
+
+    @staticmethod
+    def parse(o: _Obj) -> LockedTool:
+        t = LockedTool(
+            o.str("tool"),
+            o.str("version"),
+            Platform.parse(o.obj("platform")),
+            Variant.parse(o.obj("variant", False)),
+            o.str("sha256"),
+            o.str("install"),
+        )
+        o.done()
+        return t
+
+
+@dataclass(frozen=True)
+class Lock:
+    """A consumer's lock file (e.g. obs-studio's deps.lock.json): the root to resolve from and its pins."""
+
+    root: str
+    tools: tuple[LockedTool, ...]
+
+    @staticmethod
+    def parse(o: _Obj) -> Lock:
+        lock = Lock(o.str("root"), tuple(LockedTool.parse(t) for t in o.objs("tools")))
+        o.done()
+        return lock
+
+
 # --- documents --------------------------------------------------------------------
 
 
@@ -476,6 +515,10 @@ def parse_slice(text: str | bytes, where: str = "slice") -> EmbeddedSlice:
 
 def parse_summaries(text: str | bytes, where: str = "summaries.json") -> Summaries:
     return Summaries.parse(_Obj(_load(text, where), where))
+
+
+def parse_lock(text: str | bytes, where: str = "deps.lock.json") -> Lock:
+    return Lock.parse(_Obj(_load(text, where), where))
 
 
 def parse_record(text: str | bytes, where: str = "record") -> PackRecord:
