@@ -106,3 +106,29 @@ def test_floor_is_measured(tmp_path):
     assert ok == []
     too_old_floor = measure_floor(tmp_path / "bin", "2.0")
     assert [v.path for v in too_old_floor] == ["probe"]
+
+
+def test_a_rebuild_sits_beside_the_original_and_pins_pick_one(tmp_path):
+    first = pack(tree(tmp_path, "one"), "demo", "1.0", LINUX, NONE, tmp_path / "d1")
+    (tmp_path / "src").rename(tmp_path / "old")
+    rebuilt = pack(tree(tmp_path, "two"), "demo", "1.0", LINUX, NONE, tmp_path / "d2", label="r2")
+    assert rebuilt.entry.variant.flavor == "r2"
+    assert rebuilt.entry.asset.filename == "demo-1.0-linux-x86_64-glibc2.28-r2.tar.zst"
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    catalog = cat.add_platform(cat.empty_catalog("demo"), "1.0", first.entry)
+    catalog = cat.add_platform(catalog, "1.0", rebuilt.entry)
+    cat.write_catalog(assets, catalog)
+    index = cat.write_index(assets, Summaries(()))
+    validate_document(json.loads((assets / "demo" / "manifest.json").read_text()))
+    release = catalog.release("1.0")
+    assert release is not None and len(release.platforms) == 2
+
+    def fetch(rel):
+        return (assets / rel).read_bytes()
+
+    old = cat.resolve(index, "demo", "1.0", LINUX, NONE, fetch, first.entry.asset.sha256)
+    new = cat.resolve(index, "demo", "1.0", LINUX, NONE, fetch, rebuilt.entry.asset.sha256)
+    assert (old, new) == (first.entry.asset, rebuilt.entry.asset)
+    with pytest.raises(ManifestError, match="2 entries"):
+        cat.resolve(index, "demo", "1.0", LINUX, NONE, fetch)

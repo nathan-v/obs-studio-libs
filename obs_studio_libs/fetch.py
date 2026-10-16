@@ -60,7 +60,13 @@ class Pin:
 def install(pin: Pin, dest: Path, root_url: str = ROOT_URL) -> Asset:
     index = parse_index(get(root_url), root_url)
     asset = resolve(
-        index, pin.tool, pin.version, pin.platform, pin.variant, lambda rel: get(urllib.parse.urljoin(root_url, rel))
+        index,
+        pin.tool,
+        pin.version,
+        pin.platform,
+        pin.variant,
+        lambda rel: get(urllib.parse.urljoin(root_url, rel)),
+        pin.sha256,
     )
     if asset.sha256 != pin.sha256:
         raise ManifestError(f"{pin.tool} {pin.version}: the catalog's asset is {asset.sha256}, pinned {pin.sha256}")

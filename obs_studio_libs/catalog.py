@@ -146,7 +146,9 @@ def make_slice(assets: Path, tool: str, version: str, platform: Platform, varian
     )
 
 
-def resolve(index: Index, tool: str, version: str, platform: Platform, variant: Variant, fetch_catalog) -> Asset:
+def resolve(
+    index: Index, tool: str, version: str, platform: Platform, variant: Variant, fetch_catalog, sha256: str = ""
+) -> Asset:
     """Index -> the tool's Catalog (checked against its descriptor) -> one Asset.
 
     fetch_catalog(relative_url) -> bytes is supplied by the caller (network or files)."""
@@ -163,6 +165,11 @@ def resolve(index: Index, tool: str, version: str, platform: Platform, variant: 
     if release is None:
         raise ManifestError(f"{tool} {version}: no such release")
     hits = [p for p in release.platforms if p.platform.matches(platform) and p.variant.matches(variant)]
+    # Several builds of a version can match (a rebuild under a build label beside the
+    # original): the pinned bytes decide.
+    if sha256:
+        hits = [p for p in hits if p.asset.sha256 == sha256]
     if len(hits) != 1:
-        raise ManifestError(f"{tool} {release.version}: {len(hits)} entries match {platform} {variant}")
+        pinned = f" with sha256 {sha256}" if sha256 else ""
+        raise ManifestError(f"{tool} {release.version}: {len(hits)} entries match {platform} {variant}{pinned}")
     return hits[0].asset

@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import tarfile
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from elftools.common.exceptions import ELFError
@@ -98,7 +98,12 @@ def pack(
             lines = "\n".join(f"  {b.path}: GLIBC_{b.needs}" for b in bad[:40])
             raise ManifestError(f"{len(bad)} files need a glibc newer than {platform.os_version}:\n{lines}")
     out.mkdir(parents=True, exist_ok=True)
-    name = archive_name(tool, version, platform, variant, label)
+    # A build label (a rebuild of a published version) is the variant's flavor, so the
+    # rebuild is a separate entry beside the original in the same Release: both stay
+    # resolvable, and a consumer picks one by the sha256 it pins (as soldr-toolchain does).
+    if label:
+        variant = replace(variant, flavor=label)
+    name = archive_name(tool, version, platform, variant, "")
     archive = out / name
     with tarfile.open(archive, "w:zst", level=ZSTD_LEVEL) as tar:
         for entry in entries:

@@ -43,7 +43,7 @@ cmake -S "qtbase-everywhere-src-$QT_VERSION" -B build-qtbase -G Ninja \
     -DFEATURE_openssl=ON -DFEATURE_openssl_linked=OFF \
     -DFEATURE_sql=OFF -DFEATURE_testlib=OFF -DFEATURE_printsupport=OFF \
     -DFEATURE_concurrent=OFF -DFEATURE_vulkan=OFF \
-    -DFEATURE_eglfs=OFF -DFEATURE_linuxfb=OFF -DFEATURE_vnc=OFF
+    -DFEATURE_eglfs=OFF -DFEATURE_linuxfb=OFF -DFEATURE_vnc=OFF -DFEATURE_gtk3=OFF
 cmake --build build-qtbase
 cmake --install build-qtbase
 

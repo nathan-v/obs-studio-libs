@@ -52,6 +52,9 @@ theora() {
     cp /usr/share/automake-*/config.guess /usr/share/automake-*/config.sub . 2>/dev/null || true
     autotools --disable-examples --disable-spec --disable-doc --disable-oggtest --disable-vorbistest \
         --with-ogg="$PREFIX" --with-vorbis="$PREFIX"
+    # theora 1.1.1 links libtheoraenc without libtheoradec, whose th_comment_*
+    # functions it uses: declare the dependency so the library loads on its own.
+    patchelf --add-needed libtheoradec.so.1 "$PREFIX/lib/libtheoraenc.so.1"
 }
 lame() {
     tar_src lame https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz \
