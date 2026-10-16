@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+obs_studio_libs/__init__.py
+obs_studio_libs/catalog.py
+obs_studio_libs/cli.py
+obs_studio_libs/fetch.py
+obs_studio_libs/model.py
+obs_studio_libs/pack.py
+obs_studio_libs.egg-info/PKG-INFO
+obs_studio_libs.egg-info/SOURCES.txt
+obs_studio_libs.egg-info/dependency_links.txt
+obs_studio_libs.egg-info/entry_points.txt
+obs_studio_libs.egg-info/requires.txt
+obs_studio_libs.egg-info/top_level.txt
+tests/test_catalog.py
+tests/test_no_dict_access.py

@@ -17,7 +17,7 @@ layout [soldr-toolchain](https://github.com/zackees/soldr-toolchain) uses:
 | Elsewhere | What |
 |---|---|
 | Release `<tool>-<version>` | The assets: `<tool>-<version>-<platform>[-<variant>].tar.zst`, zstd level 9. |
-| `scripts/libs.py` (main) | `pack` (directory to `.tar.zst` plus its Asset record), `add` (record into the Catalog and rewrite the root Index), `slice` (an EmbeddedSlice for a consumer to pin). |
+| `obs_studio_libs/` (main) | The `obs-studio-libs` CLI: `pack` (directory to `.tar.zst`, measuring the glibc floor on Linux), `ingest` (a zackees/forge artifact), `add` (record into the Catalog and rewrite the root Index), `slice`, and `fetch` (resolve from the root and install). |
 
 Root: `https://raw.githubusercontent.com/obs-rust/obs-studio-libs/assets/manifest.json`
 
@@ -51,3 +51,20 @@ For Linux, `os_version` is the glibc floor: the oldest glibc the libraries run o
   obs-deps' Qt set. Each archive's contents are a Qt install prefix (`lib/`,
   `include/`, `plugins/`, `lib/cmake/Qt6*`). Qt's CMake packages are
   relocatable, so the prefix can be extracted anywhere.
+
+## Development
+
+```sh
+uv run --group dev pytest        # model, catalog, immutability, floor, no-dict lint
+uv run --group dev ruff check .
+```
+
+JSON is parsed eagerly into typed, frozen dataclasses (`obs_studio_libs/model.py`,
+strict: unknown or missing fields fail with their path). Nothing else touches a
+dictionary; `tests/test_no_dict_access.py` fails on string-keyed subscripts,
+`.get("...")`, dict literals and `dict()` outside the model.
+
+Published bytes are immutable, as in soldr-toolchain: `add` refuses an asset
+whose filename is already catalogued with another sha256 (`--replace` is the
+deliberate override), and a rebuild of a published version is packed with
+`--label` and published beside the original.

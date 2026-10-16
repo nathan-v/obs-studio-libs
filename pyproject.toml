@@ -1,0 +1,35 @@
+[project]
+name = "obs-studio-libs"
+version = "0.1.0"
+description = "Pack, ingest and catalog OBS-Studio-Rust's prebuilt dependencies (zackees/manifest.json)"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = ["pyelftools==0.32"]
+
+[project.scripts]
+obs-studio-libs = "obs_studio_libs.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest==8.4.2",
+  "ruff==0.14.3",
+  "manifest-json @ git+https://github.com/zackees/manifest.json@e255ede6edf4a646a6d1031e91fd57136105a899",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["obs_studio_libs"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "PL", "RUF"]
+ignore = ["PLR2004", "PLR0911", "PLR0912", "PLR0915", "PLR0913"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
