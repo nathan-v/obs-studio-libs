@@ -94,7 +94,11 @@ jobs:
           QT_VERSION: ${{ inputs.qt_version }}
         run: |
           shopt -s nullglob
-          files=($OUTPUT)
+          # obs-deps also writes a debug-symbol archive (...-dSYMs.tar.xz on macOS) beside the package.
+          files=()
+          for f in $OUTPUT; do
+            case "$f" in *dSYMs*) ;; *) files+=("$f") ;; esac
+          done
           [ "${#files[@]}" = 1 ] || { echo "::error::expected one obs-deps archive for $OUTPUT, found: ${files[*]:-none}"; exit 1; }
           mkdir stage
           case "${files[0]}" in
