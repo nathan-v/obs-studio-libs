@@ -38,7 +38,7 @@ what to download.
 
 | Platform tuple | Built by |
 |---|---|
-| `os=linux,arch=x86_64,libc=glibc,os_version=2.28` | obs-studio's `build-aux/appimage/manylinux/` image (manylinux_2_28, AlmaLinux 8), packed with `scripts/libs.py pack` |
+| `os=linux,arch=x86_64,libc=glibc,os_version=2.28` | `recipes/qt6/linux/` (manylinux_2_28, AlmaLinux 8) via `bosn run --task qt6-linux` |
 | `os=windows,arch=x86_64,libc=msvc` | `.github/workflows/qt6.yml` on `windows-2022`, with obs-deps' recipe |
 | `os=windows,arch=aarch64,libc=msvc` | `.github/workflows/qt6.yml` on `windows-11-arm` |
 | `os=darwin,arch=universal2,os_version=11.0` | `.github/workflows/qt6.yml` on `macos-15` |

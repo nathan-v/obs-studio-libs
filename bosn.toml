@@ -1,0 +1,16 @@
+# Local producers under bosn (zackees/bosn). Each builds one tool for one
+# platform in a pinned image; `obs-studio-libs pack` then archives it (measuring
+# the glibc floor) and `obs-studio-libs add` catalogs it on the assets branch.
+
+[stack.qt6-linux]
+dockerfile = "recipes/qt6/linux/Dockerfile"
+family = "obs-studio-libs-qt6-linux"
+workdir = "/src"
+
+[stack.qt6-linux.mounts]
+src = { source = ".", destination = "/src" }
+
+# bosn run --task qt6-linux -> dist/qt6-<version>-linux-x86_64-glibc2.28-release.tar.zst (+ .json)
+[task.qt6-linux]
+stack = "qt6-linux"
+cmd = "sh -c 'curl -fsSLo /tmp/uv.tgz https://github.com/astral-sh/uv/releases/download/0.12.13/uv-x86_64-unknown-linux-gnu.tar.gz && echo \"745765a3b6e360ad76743599ae5c42e9278c7edf8bbff9fc76d05bf2623a04dd  /tmp/uv.tgz\" | sha256sum -c - && tar -xzf /tmp/uv.tgz -C /tmp --strip-components=1 && version=$(sed -n s/^QT_VERSION=//p recipes/qt6/linux/build.sh) && /tmp/uv run obs-studio-libs pack /opt/qt6 --tool qt6 --version \"$version\" --platform os=linux,arch=x86_64,libc=glibc,os_version=2.28 --variant optimization=release --out dist'"
