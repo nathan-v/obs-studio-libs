@@ -1,3 +1,9 @@
 {
+  "fdk-aac": "Fraunhofer FDK AAC encoder (obs-libfdk).",
+  "ffmpeg": "FFmpeg with the codecs OBS ships (x264, aom, svt-av1, vpx, opus, vorbis, theora, lame, srt, librist, mbedtls, nv-codec headers): shared libraries and headers.",
+  "glib": "GLib/GIO, for OBS's PipeWire capture (needs >= 2.76).",
+  "headers": "Header-only libraries: nlohmann/json, asio, SIMDe.",
+  "pipewire": "PipeWire client library, modules, SPA plugins and client.conf.",
+  "qrcodegen": "nayuki QR-Code-generator (C++), for obs-websocket.",
   "qt6": "Qt 6 (qtbase, qtsvg, qtwayland on Linux): shared libraries, headers, CMake packages and plugins for building OBS-Studio-Rust."
 }

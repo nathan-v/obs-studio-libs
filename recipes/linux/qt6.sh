@@ -10,6 +10,7 @@ set -euo pipefail
 # "qt6"), so the tarball is exactly this directory.
 PREFIX="${QT_PREFIX:-/opt/obs-deps/qt6}"
 QT_VERSION=6.11.1
+VERSION=$QT_VERSION # for the pack task
 declare -A SHA256=(
     [qtbase]=d9594a31228aa23ad6b531719a29b45f0f3989fe6c136d45767ea179f233c1ac
     [qtsvg]=7f3cf02f4824bf03c2c5859ea6db173bf1482a1daf24e6cdf7bc78cfa26a8a94
