@@ -11,6 +11,8 @@ workdir = "/src"
 
 [stack.linux.env]
 UV_CACHE_DIR = "/tmp/uv-cache"
+# Never in the mounted checkout: a root-owned .venv there breaks the host user.
+UV_PROJECT_ENVIRONMENT = "/tmp/uv-venv"
 
 [stack.linux.mounts]
 src = { source = ".", destination = "/src" }
