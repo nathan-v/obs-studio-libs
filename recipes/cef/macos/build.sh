@@ -45,12 +45,18 @@ arch_of() {
         gn_dir=Release_GN_arm64
         distrib_arch=macosarm64
         project_arch=arm64
+        # The hook on this host would also write Debug_GN_arm64.
+        export GN_OUT_CONFIGS=Release_GN_arm64
         ;;
     x86_64)
         automate_arch=--x64-build
         gn_dir=Release_GN_x64
         distrib_arch=macosx64
         project_arch=x86_64
+        # An arm64 Mac only writes Release_GN_arm64 unless this is set.
+        # GN_OUT_CONFIGS stops the hook from recreating the arm64 out directory.
+        export CEF_ENABLE_AMD64=1
+        export GN_OUT_CONFIGS=Release_GN_x64
         ;;
     *)
         usage
