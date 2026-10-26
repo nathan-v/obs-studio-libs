@@ -86,8 +86,21 @@ automate() {
 
 bootstrap() {
     export PATH="$WORK/depot_tools:$PATH"
+    # depot_tools/ninja is a wrapper. It finds the real binary only when the
+    # current directory is the Chromium tree, so cmake's `ninja --version`
+    # probe from the CEF distribution fails. Prefer the Mach-O ninja.
+    if [ -x "$WORK/chromium/src/third_party/ninja/ninja" ]; then
+        export PATH="$WORK/chromium/src/third_party/ninja:$PATH"
+    fi
     "$WORK/depot_tools/ensure_bootstrap"
-    command -v ninja >/dev/null
+    ninja_bin="$(command -v ninja)"
+    case "$ninja_bin" in
+    *.py|*/depot_tools/ninja)
+        echo "ninja on PATH is the depot_tools wrapper ($ninja_bin)" >&2
+        exit 1
+        ;;
+    esac
+    "$ninja_bin" --version >/dev/null
 }
 
 case "${1:-}" in
